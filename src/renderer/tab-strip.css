@@ -1,0 +1,102 @@
+:root {
+  color-scheme: light dark;
+  --strip: #eceae6;
+  --ink: #1c1c1c;
+  --tab: #e2dfd8;
+  --active: #f7f6f3;
+  --line: #c9c4ba;
+  --muted: #5c5852;
+  font-family: Cantarell, "Segoe UI", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --strip: #242424;
+    --ink: #f3f1ec;
+    --tab: #2e2e2e;
+    --active: #3a3a3a;
+    --line: #4a4a4a;
+    --muted: #bdb8b0;
+  }
+}
+
+html,
+body {
+  margin: 0;
+  height: 40px;
+  overflow: hidden;
+  background: var(--strip);
+  color: var(--ink);
+}
+
+#strip {
+  display: flex;
+  align-items: stretch;
+  height: 40px;
+  gap: 6px;
+  padding: 4px 6px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--line);
+}
+
+#tabs {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.tab {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  max-width: 220px;
+  background: var(--tab);
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+
+.tab.active {
+  background: var(--active);
+  border-color: var(--line);
+}
+
+.select,
+.close,
+#new-tab {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.select {
+  flex: 1;
+  min-width: 0;
+  padding: 0 4px 0 10px;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.close,
+#new-tab {
+  width: 28px;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+#new-tab {
+  flex: none;
+  border-radius: 6px;
+  font-size: 18px;
+}
+
+.select:hover,
+.close:hover,
+#new-tab:hover {
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+}
