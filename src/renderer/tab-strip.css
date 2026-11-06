@@ -1,23 +1,15 @@
 :root {
-  color-scheme: light dark;
-  --strip: #eceae6;
-  --ink: #1c1c1c;
-  --tab: #e2dfd8;
-  --active: #f7f6f3;
-  --line: #c9c4ba;
-  --muted: #5c5852;
-  font-family: Cantarell, "Segoe UI", sans-serif;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --strip: #242424;
-    --ink: #f3f1ec;
-    --tab: #2e2e2e;
-    --active: #3a3a3a;
-    --line: #4a4a4a;
-    --muted: #bdb8b0;
-  }
+  color-scheme: dark;
+  --strip: #181818;
+  --editor: #1f1f1f;
+  --line: #2b2b2b;
+  --ink: #ffffff;
+  --inactive: #9d9d9d;
+  --button: #cccccc;
+  --accent: #0078d4;
+  --hover: #ffffff14;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", system-ui, Ubuntu, "Droid Sans", sans-serif;
+  font-size: 13px;
 }
 
 html,
@@ -26,40 +18,51 @@ body {
   height: 40px;
   overflow: hidden;
   background: var(--strip);
-  color: var(--ink);
+  color: var(--button);
 }
 
 #strip {
   display: flex;
   align-items: stretch;
   height: 40px;
-  gap: 6px;
-  padding: 4px 6px;
   box-sizing: border-box;
+  background: var(--strip);
   border-bottom: 1px solid var(--line);
 }
 
 #tabs {
   display: flex;
   flex: 1;
-  gap: 4px;
   min-width: 0;
   overflow-x: auto;
+}
+
+#tabs::-webkit-scrollbar {
+  height: 3px;
+}
+
+#tabs::-webkit-scrollbar-thumb {
+  background: #79797966;
 }
 
 .tab {
   display: flex;
   align-items: stretch;
   min-width: 0;
-  max-width: 220px;
-  background: var(--tab);
-  border: 1px solid transparent;
-  border-radius: 6px;
+  max-width: 200px;
+  background: var(--strip);
+  color: var(--inactive);
+  border-right: 1px solid var(--line);
+}
+
+.tab:hover {
+  background: var(--editor);
 }
 
 .tab.active {
-  background: var(--active);
-  border-color: var(--line);
+  background: var(--editor);
+  color: var(--ink);
+  box-shadow: inset 0 1px 0 var(--accent);
 }
 
 .select,
@@ -74,7 +77,7 @@ body {
 .select {
   flex: 1;
   min-width: 0;
-  padding: 0 4px 0 10px;
+  padding: 0 4px 0 12px;
   text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -86,17 +89,29 @@ body {
 #new-tab {
   width: 28px;
   cursor: pointer;
-  color: var(--muted);
+}
+
+.close {
+  color: var(--inactive);
+}
+
+.tab.active .close,
+.tab:hover .close {
+  color: var(--button);
+}
+
+.close:hover,
+#new-tab:hover {
+  background: var(--hover);
+  color: var(--ink);
 }
 
 #new-tab {
   flex: none;
-  border-radius: 6px;
-  font-size: 18px;
-}
-
-.select:hover,
-.close:hover,
-#new-tab:hover {
-  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  margin: 6px 4px;
+  width: 28px;
+  border-radius: 5px;
+  color: var(--button);
+  font-size: 16px;
+  line-height: 1;
 }

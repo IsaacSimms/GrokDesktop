@@ -26,7 +26,7 @@ export function openMainWindow(ses: Session): BrowserWindow {
     frame: true,
     autoHideMenuBar: true,
     title: "GrokDesktop",
-    backgroundColor: "#161616",
+    backgroundColor: "#181818",
     icon: shellAssetPath(__dirname, "icon.png"),
     webPreferences: secureWebPreferences(shellAssetPath(__dirname, "preload.js")),
   });
