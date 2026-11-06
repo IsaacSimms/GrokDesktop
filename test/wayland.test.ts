@@ -7,6 +7,7 @@ describe("wayland", () => {
     expect(switches).toEqual([
       ["ozone-platform", "wayland"],
       ["enable-features", "WaylandWindowDecorations"],
+      ["disable-features", "NativeViewHostManagesLayers"],
     ]);
     expect(switches.some(([, value]) => value.toLowerCase().includes("x11"))).toBe(false);
   });

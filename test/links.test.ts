@@ -8,6 +8,29 @@ describe("link classifier", () => {
     expect(classifyLink({ kind: "main-frame", url: "https://assets.grok.com/x" })).toBe("stay");
   });
 
+  it("keeps a sign-in page in the tab when the site navigates there", () => {
+    expect(classifyLink({ kind: "main-frame", url: "https://accounts.google.com/signin" })).toBe("stay");
+    expect(classifyLink({ kind: "main-frame", url: "https://appleid.apple.com/auth/authorize" })).toBe(
+      "stay",
+    );
+    expect(classifyLink({ kind: "main-frame", url: "https://accounts.x.ai/sign-in" })).toBe("stay");
+    expect(
+      classifyLink({ kind: "main-frame", url: "https://accounts.youtube.com/accounts/CheckConnection" }),
+    ).toBe("stay");
+  });
+
+  it("does not treat a lookalike or non-https sign-in host as sign-in", () => {
+    for (const url of [
+      "https://accounts.google.com.evil.com/o/oauth2/v2/auth",
+      "https://notaccounts.google.com/signin",
+      "http://accounts.google.com/signin",
+      "https://evil.com/accounts.google.com",
+    ]) {
+      expect(classifyLink({ kind: "window-open", url, popup: false })).toBe("external");
+      expect(classifyLink({ kind: "main-frame", url })).toBe("external");
+    }
+  });
+
   it("sends other main-frame hosts to the system browser", () => {
     for (const url of [
       "https://example.com",
@@ -46,6 +69,63 @@ describe("link classifier", () => {
     expect(
       classifyLink({ kind: "window-open", url: "https://example.com/docs", popup: false }),
     ).toBe("external");
+  });
+
+  it("keeps a Google sign-in window in the app when it is not a popup", () => {
+    expect(
+      classifyLink({
+        kind: "window-open",
+        url: "https://accounts.google.com/o/oauth2/v2/auth?client_id=x",
+        popup: false,
+      }),
+    ).toBe("child-window");
+  });
+
+  it("keeps sign-in cookie handoffs in the app and leaves the rest of that host outside", () => {
+    for (const url of [
+      "https://accounts.youtube.com/accounts/CheckConnection?continue=https%3A%2F%2Faccounts.google.com",
+      "https://accounts.youtube.com/accounts/SetSID",
+      "https://auth.grok.com/set-cookie",
+      "https://auth.grok.com/delete-cookie",
+      "https://auth.grokusercontent.com/set-cookie",
+      "https://auth.x.ai/delete-cookie",
+    ]) {
+      expect(classifyLink({ kind: "window-open", url, popup: false })).toBe("child-window");
+    }
+    expect(
+      classifyLink({
+        kind: "window-open",
+        url: "https://accounts.youtube.com/watch",
+        popup: false,
+      }),
+    ).toBe("external");
+    expect(
+      classifyLink({ kind: "window-open", url: "https://auth.grok.com/other", popup: false }),
+    ).toBe("new-tab");
+    expect(
+      classifyLink({
+        kind: "window-open",
+        url: "https://auth.grokusercontent.com/other",
+        popup: false,
+      }),
+    ).toBe("external");
+  });
+
+  it("keeps Apple and xAI sign-in windows in the app when they are not popups", () => {
+    expect(
+      classifyLink({
+        kind: "window-open",
+        url: "https://appleid.apple.com/auth/authorize",
+        popup: false,
+      }),
+    ).toBe("child-window");
+    expect(
+      classifyLink({
+        kind: "window-open",
+        url: "https://accounts.x.ai/sign-in",
+        popup: false,
+      }),
+    ).toBe("child-window");
   });
 
   it("treats Electron's new-window disposition as a popup", () => {

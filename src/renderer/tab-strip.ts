@@ -35,6 +35,7 @@ function render(state: TabStripState): void {
     select.type = "button";
     select.className = "select";
     select.textContent = labelFor(url);
+    select.title = url;
     select.addEventListener("click", () => grokdesktop.switchTab(index));
     const close = document.createElement("button");
     close.type = "button";
@@ -52,9 +53,13 @@ if (newTab) {
   newTab.addEventListener("click", () => grokdesktop.openTab());
 }
 
-void grokdesktop.getTabs().then((state) => {
+let sawUpdate = false;
+grokdesktop.onTabs((state) => {
+  sawUpdate = true;
   render(state);
-  grokdesktop.onTabs(render);
+});
+void grokdesktop.getTabs().then((state) => {
+  if (!sawUpdate) render(state);
   grokdesktop.stripReady();
 }).catch(() => {
   grokdesktop.stripReady();

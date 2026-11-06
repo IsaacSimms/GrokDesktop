@@ -4,7 +4,7 @@ import { readWindowState } from "../persist/file";
 import { secureWebPreferences } from "../session/preferences";
 import { attachTabs } from "../tabs/host";
 import { shellAssetPath } from "./assets";
-import { DEFAULT_HEIGHT, DEFAULT_WIDTH } from "./constants";
+import { DEFAULT_HEIGHT, DEFAULT_WIDTH, TITLE_BAR_OVERLAY } from "./constants";
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -26,6 +26,8 @@ export function openMainWindow(ses: Session): BrowserWindow {
     frame: true,
     autoHideMenuBar: true,
     title: "GrokDesktop",
+    titleBarStyle: "hidden",
+    titleBarOverlay: { ...TITLE_BAR_OVERLAY },
     backgroundColor: "#181818",
     icon: shellAssetPath(__dirname, "icon.png"),
     webPreferences: secureWebPreferences(shellAssetPath(__dirname, "preload.js")),

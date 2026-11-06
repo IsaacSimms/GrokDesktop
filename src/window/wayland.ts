@@ -5,6 +5,9 @@ export function waylandSwitches(env: { WAYLAND_DISPLAY?: string }): CommandSwitc
   return [
     ["ozone-platform", "wayland"],
     ["enable-features", "WaylandWindowDecorations"],
+    // Electron 45 hides the Wayland window-control overlay unless this
+    // Chromium layering feature is off, which removes minimize, maximize, and close.
+    ["disable-features", "NativeViewHostManagesLayers"],
   ];
 }
 

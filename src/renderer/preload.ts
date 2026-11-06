@@ -1,23 +1,29 @@
 import { contextBridge, ipcRenderer } from "electron";
-import { IpcChannel, type TabStripState } from "../ipc";
 
+type TabStripState = {
+  tabs: string[];
+  activeIndex: number;
+};
+
+// Channel names match IpcChannel in src/ipc.ts. This file must not import
+// another local module: the sandboxed preload can require electron only.
 contextBridge.exposeInMainWorld("grokdesktop", {
-  getTabs: (): Promise<TabStripState> => ipcRenderer.invoke(IpcChannel.getTabs),
+  getTabs: (): Promise<TabStripState> => ipcRenderer.invoke("tabs-get"),
   onTabs: (callback: (state: TabStripState) => void): void => {
-    ipcRenderer.on(IpcChannel.tabsUpdated, (_event, state: TabStripState) => {
+    ipcRenderer.on("tabs-updated", (_event, state: TabStripState) => {
       callback(state);
     });
   },
   openTab: (): void => {
-    ipcRenderer.send(IpcChannel.openTab);
+    ipcRenderer.send("tabs-open");
   },
   closeTab: (index: number): void => {
-    ipcRenderer.send(IpcChannel.closeTab, index);
+    ipcRenderer.send("tabs-close", index);
   },
   switchTab: (index: number): void => {
-    ipcRenderer.send(IpcChannel.switchTab, index);
+    ipcRenderer.send("tabs-switch", index);
   },
   stripReady: (): void => {
-    ipcRenderer.send(IpcChannel.stripReady);
+    ipcRenderer.send("strip-ready");
   },
 });

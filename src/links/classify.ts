@@ -19,13 +19,34 @@ export function isGrokUrl(url: string): boolean {
   }
 }
 
+const SIGN_IN_HOSTS = new Set(["accounts.google.com", "appleid.apple.com", "accounts.x.ai"]);
+
+const COOKIE_HANDOFF_PATHS = new Map<string, ReadonlySet<string>>([
+  ["accounts.youtube.com", new Set(["/accounts/SetSID", "/accounts/CheckConnection"])],
+  ["auth.grok.com", new Set(["/set-cookie", "/delete-cookie"])],
+  ["auth.grokusercontent.com", new Set(["/set-cookie", "/delete-cookie"])],
+  ["auth.x.ai", new Set(["/set-cookie", "/delete-cookie"])],
+]);
+
+function isSignInUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:") return false;
+    const host = parsed.hostname.toLowerCase().replace(/\.$/, "");
+    if (SIGN_IN_HOSTS.has(host)) return true;
+    return COOKIE_HANDOFF_PATHS.get(host)?.has(parsed.pathname) ?? false;
+  } catch {
+    return false;
+  }
+}
+
 export function classifyLink(input: ClassifyInput): LinkDecision {
   if (input.kind === "redirect") return "stay";
   if (input.kind === "window-open") {
-    if (input.popup) return "child-window";
+    if (input.popup || isSignInUrl(input.url)) return "child-window";
     return isGrokUrl(input.url) ? "new-tab" : "external";
   }
-  return isGrokUrl(input.url) ? "stay" : "external";
+  return isGrokUrl(input.url) || isSignInUrl(input.url) ? "stay" : "external";
 }
 
 function hasPopupFeatures(features: string): boolean {
