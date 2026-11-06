@@ -1,0 +1,75 @@
+{
+  "name": "grokdesktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Unofficial desktop shell for grok.com",
+  "license": "GPL-3.0-only",
+  "author": "GrokDesktop contributors",
+  "homepage": "https://github.com/IsaacSimms/GrokDesktop",
+  "desktopName": "grokdesktop",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.renderer.json && node scripts/copy-static.mjs",
+    "start": "npm run build && electron .",
+    "test": "vitest run",
+    "dist": "npm run build && node scripts/copy-notices.mjs && electron-builder --linux rpm --x64"
+  },
+  "build": {
+    "appId": "dev.grokdesktop.app",
+    "productName": "GrokDesktop",
+    "copyright": "GrokDesktop contributors, GPLv3",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "!dist/**/*.map",
+      "build/icon.png",
+      "package.json",
+      "LICENSE"
+    ],
+    "extraResources": [
+      {
+        "from": "build/third-party",
+        "to": "third-party"
+      },
+      {
+        "from": "LICENSE",
+        "to": "LICENSE"
+      }
+    ],
+    "linux": {
+      "target": [
+        {
+          "target": "rpm",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Network",
+      "icon": "build/icon.png",
+      "executableName": "grokdesktop",
+      "maintainer": "GrokDesktop contributors",
+      "publish": null,
+      "syncDesktopName": true,
+      "synopsis": "Unofficial desktop shell for grok.com",
+      "description": "Unofficial desktop shell for grok.com. Not affiliated with xAI.",
+      "desktop": {
+        "entry": {
+          "Name": "GrokDesktop",
+          "Comment": "Unofficial desktop shell for grok.com",
+          "Categories": "Network;",
+          "StartupWMClass": "grokdesktop"
+        }
+      }
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "electron": "^45.2.3",
+    "electron-builder": "^26.18.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}

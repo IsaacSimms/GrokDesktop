@@ -1,0 +1,117 @@
+:root {
+  color-scheme: dark;
+  --strip: #181818;
+  --editor: #1f1f1f;
+  --line: #2b2b2b;
+  --ink: #ffffff;
+  --inactive: #9d9d9d;
+  --button: #cccccc;
+  --accent: #0078d4;
+  --hover: #ffffff14;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", system-ui, Ubuntu, "Droid Sans", sans-serif;
+  font-size: 13px;
+}
+
+html,
+body {
+  margin: 0;
+  height: 40px;
+  overflow: hidden;
+  background: var(--strip);
+  color: var(--button);
+}
+
+#strip {
+  display: flex;
+  align-items: stretch;
+  height: 40px;
+  box-sizing: border-box;
+  background: var(--strip);
+  border-bottom: 1px solid var(--line);
+}
+
+#tabs {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+#tabs::-webkit-scrollbar {
+  height: 3px;
+}
+
+#tabs::-webkit-scrollbar-thumb {
+  background: #79797966;
+}
+
+.tab {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  max-width: 200px;
+  background: var(--strip);
+  color: var(--inactive);
+  border-right: 1px solid var(--line);
+}
+
+.tab:hover {
+  background: var(--editor);
+}
+
+.tab.active {
+  background: var(--editor);
+  color: var(--ink);
+  box-shadow: inset 0 1px 0 var(--accent);
+}
+
+.select,
+.close,
+#new-tab {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.select {
+  flex: 1;
+  min-width: 0;
+  padding: 0 4px 0 12px;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.close,
+#new-tab {
+  width: 28px;
+  cursor: pointer;
+}
+
+.close {
+  color: var(--inactive);
+}
+
+.tab.active .close,
+.tab:hover .close {
+  color: var(--button);
+}
+
+.close:hover,
+#new-tab:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+#new-tab {
+  flex: none;
+  margin: 6px 4px;
+  width: 28px;
+  border-radius: 5px;
+  color: var(--button);
+  font-size: 16px;
+  line-height: 1;
+}

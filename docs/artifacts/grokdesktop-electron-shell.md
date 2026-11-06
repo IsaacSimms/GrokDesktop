@@ -285,11 +285,11 @@ Plan defaults for edges the grill did not ask. Treat them as locked unless the u
 
 ## Progress
 
-- [ ] Phase 1 — Secure window
-- [ ] Phase 2 — Tab strip
-- [ ] Phase 3 — Links, downloads, permissions
-- [ ] Phase 4 — Restore
-- [ ] Phase 5 — Fedora rpm and repo surface
+- [x] Phase 1 — Secure window
+- [x] Phase 2 — Tab strip
+- [x] Phase 3 — Links, downloads, permissions
+- [x] Phase 4 — Restore
+- [x] Phase 5 — Fedora rpm and repo surface
 
 ## Testing Strategy
 
