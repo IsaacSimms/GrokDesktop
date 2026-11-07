@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from "electron";
 
 type TabStripState = {
   tabs: string[];
+  titles: string[];
   activeIndex: number;
 };
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { closeTab, createTabState, openTab, setTabUrl, switchTab, HOME_URL } from "../src/tabs/model";
+import { tabTitle } from "../src/tabs/title";
 
 describe("tab model", () => {
   it("starts with one grok.com tab", () => {
@@ -66,6 +67,25 @@ describe("tab model", () => {
       tabs: [HOME_URL, "https://grok.com/a/project"],
       activeIndex: 1,
     });
+  });
+});
+
+describe("tab title", () => {
+  it("keeps a thread name and drops the site name around it", () => {
+    expect(tabTitle("Polling places")).toBe("Polling places");
+    expect(tabTitle("  Polling places  ")).toBe("Polling places");
+    expect(tabTitle("Polling places - Grok")).toBe("Polling places");
+    expect(tabTitle("Polling places | Grok")).toBe("Polling places");
+    expect(tabTitle("Grok — Polling places")).toBe("Polling places");
+  });
+
+  it("returns nothing when the page has no thread name yet", () => {
+    expect(tabTitle("")).toBe("");
+    expect(tabTitle("   ")).toBe("");
+    expect(tabTitle("Grok")).toBe("");
+    expect(tabTitle("grok")).toBe("");
+    expect(tabTitle("Grok - Grok")).toBe("");
+    expect(tabTitle("https://grok.com/c/abc")).toBe("");
   });
 });
 

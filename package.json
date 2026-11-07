@@ -26,7 +26,24 @@
       "!dist/**/*.map",
       "build/icon.png",
       "package.json",
-      "LICENSE"
+      "LICENSE",
+      "node_modules/dbus-next/**/*",
+      "node_modules/event-stream/**/*",
+      "node_modules/through/**/*",
+      "node_modules/duplexer/**/*",
+      "node_modules/from/**/*",
+      "node_modules/map-stream/**/*",
+      "node_modules/pause-stream/**/*",
+      "node_modules/split/**/*",
+      "node_modules/stream-combiner/**/*",
+      "node_modules/hexy/**/*",
+      "node_modules/jsbi/**/*",
+      "node_modules/long/**/*",
+      "node_modules/@nornagon/put/**/*",
+      "node_modules/safe-buffer/**/*",
+      "node_modules/xml2js/**/*",
+      "node_modules/sax/**/*",
+      "node_modules/xmlbuilder/**/*"
     ],
     "extraResources": [
       {
@@ -71,5 +88,8 @@
     "electron-builder": "^26.18.0",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
+  },
+  "dependencies": {
+    "dbus-next": "^0.10.2"
   }
 }

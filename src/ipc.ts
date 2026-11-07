@@ -9,5 +9,6 @@ export const IpcChannel = {
 
 export type TabStripState = {
   tabs: string[];
+  titles: string[];
   activeIndex: number;
 };

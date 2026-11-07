@@ -27,8 +27,9 @@ npm start
 Tabs live in the title bar, in the space next to the minimize, maximize, and close buttons. There is no second tab row.
 
 - **+** or Ctrl+T opens https://grok.com.
-- Click a tab to switch. Each tab is its own grok.com page on the same login.
+- Click a tab to switch. Ctrl+Left and Ctrl+Right move to the previous and next tab, and stop at the ends. Each tab is its own grok.com page on the same login.
 - **×** or Ctrl+W closes the active tab. Ctrl+W on the only tab leaves it open.
+- Ctrl+Alt+S captures a screen region and pastes the image into the active tab. GNOME may ask once to confirm that shortcut. The image is pasted, not sent. The shortcut exists only while the GrokDesktop window is open, including while it is minimized.
 - Drag the empty part of the title bar to move the window.
 
 Links that stay on `https://grok.com` or `https://*.grok.com` stay in the app. Other links open in the system browser. Login redirects stay in the tab. A login popup stays in a child window on the same login. Sign-in with Google, Apple, or xAI stays in the app on that same login, including the cookie handoff those flows use.

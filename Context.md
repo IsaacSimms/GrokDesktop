@@ -68,13 +68,14 @@ The entry (`package.json` `"main": "dist/main.js"`) calls `app.setName("GrokDesk
 - `open.ts` — creates the one `BrowserWindow`, defers show until the strip is ready, blocks the shell page from navigating off `file:`.
 - `constants.ts` — default 1200×800, title-bar overlay colors, `TAB_STRIP_HEIGHT` 40.
 - `wayland.ts` — pure switch list. Applied from `main.ts` before `ready`.
-- `shortcuts.ts` — pure Ctrl+T / Ctrl+W mapping.
+- `shortcuts.ts` — pure Ctrl+T / Ctrl+W / Ctrl+Left / Ctrl+Right mapping.
 - `assets.ts` — paths from the compiled `dist/window` module to `dist/renderer` and `dist/build/icon.png`.
 
 ### `src/tabs/` — pages inside the window
 
 - `model.ts` — immutable tab list. `HOME_URL` is `https://grok.com`.
-- `host.ts` — one `WebContentsView` per tab on the shared session, IPC, layout, save.
+- `title.ts` — `tabTitle`. Empty means the strip shows the URL. Bare "Grok", a leading or trailing "Grok" separator, and an `http(s)` title all count as empty.
+- `host.ts` — one `WebContentsView` per tab on the shared session, IPC, layout, save. `page-title-updated` stores `tabTitle`. A navigation leaves the current label in place until the document title itself changes.
 
 ### `src/links/` — where a navigation is allowed to go
 
@@ -143,17 +144,19 @@ The process is one partition, one window, and a list of `WebContentsView`s. Feat
 | Concern | Pure module | Electron adapter |
 |---------|-------------|------------------|
 | Tab list | `tabs/model.ts` (`openTab`, `closeTab`, `switchTab`, `setTabUrl`) | `tabs/host.ts` (`attachTabs`) |
+| Tab label | `tabs/title.ts` (`tabTitle`) | `tabs/host.ts` `page-title-updated` |
 | Link decision | `links/classify.ts` (`classifyLink`) | `links/attach.ts` (`attachLinkHandlers`) |
 | Permission | `permissions/decide.ts` | `permissions/install.ts` |
 | Saved window | `persist/state.ts` (`parseWindow`, `serializeWindow`) | `persist/file.ts` |
 | Download filename | `session/download-path.ts` | `session/downloads.ts` |
 | Shortcuts | `window/shortcuts.ts` (`shortcutFor`) | `tabs/host.ts` `before-input-event` |
+| Region capture | `capture/decide.ts`, `capture/portal-messages.ts` | `capture/portal.ts` (`installCapture`) |
 | Wayland switches | `window/wayland.ts` (`waylandSwitches`) | `main.ts` `app.commandLine.appendSwitch` |
 | Asset paths | `window/assets.ts` | `window/open.ts` |
 | WebPreferences | `session/preferences.ts` | shell window, each tab view, each child window |
 | Tab-strip IPC | `ipc.ts` names. Preload repeats them as string literals. | `tabs/host.ts` handlers, `preload.ts` bridge |
 
-`TabStripState` (`{ tabs: string[]; activeIndex: number }`) is declared three times: `src/ipc.ts`, `src/renderer/preload.ts`, and `src/renderer/tab-strip.ts`. The preload cannot import `ipc.ts` (sandbox). The tab-strip script is a separate compile with no imports. The preload test is what keeps the channel strings aligned.
+`TabStripState` (`{ tabs: string[]; titles: string[]; activeIndex: number }`) is declared three times: `src/ipc.ts`, `src/renderer/preload.ts`, and `src/renderer/tab-strip.ts`. `titles[i]` is the thread name for `tabs[i]`, or `""` while the page title is still the site default. The preload cannot import `ipc.ts` (sandbox). The tab-strip script is a separate compile with no imports. The preload test is what keeps the channel strings aligned.
 
 Pure functions return the same object when nothing changed. Adapters use that identity check (`next === state`) to skip view and IPC work.
 
@@ -162,6 +165,7 @@ Pure functions return the same object when nothing changed. Adapters use that id
 - **One process.** `app.requestSingleInstanceLock()` runs at startup. A failed lock calls `app.quit()`. `second-instance` calls `focusMainWindow` (restore if minimized, then show and focus). `window-all-closed` quits. There is no tray and no macOS keep-alive branch.
 - **One session.** `configureSession()` returns `session.fromPartition("persist:grokdesktop")`. Tab views and login child windows set `webPreferences.session` to it. The shell `BrowserWindow` does not: it loads the local title-bar file on the default session, so grok.com cookies are not on that page.
 - **One main window.** `mainWindow` is a module-level variable in `window/open.ts`. `ipcMain` is process-global. `attachTabs` registers handlers and removes them on `closed`. A second `attachTabs` without a close would stack handlers. The lock is what prevents that.
+- **Shortcut lifetime.** `installCapture` registers one GlobalShortcuts session after `attachTabs` and releases that session when the window closes. Closing the window still quits. There is no tray, and the shortcut is gone after quit. A portal failure is one `GrokDesktop capture:` line on the main-process error stream. The window still opens.
 - **User data.** `app.setName("GrokDesktop")` runs before `ready`, so Electron's Linux user-data directory is `~/.config/GrokDesktop`. `npm start` and an installed copy share it. Cookies for the partition live under that directory. `window-state.json` is `{userData}/window-state.json`. Deleting the directory signs the user out.
 
 ### Boot sequence
@@ -170,7 +174,7 @@ Pure functions return the same object when nothing changed. Adapters use that id
 2. `applyWayland` appends Chromium switches when `WAYLAND_DISPLAY` is non-empty. This has to happen before the app is ready.
 3. Single-instance lock. Quit immediately when another process holds it.
 4. On `ready`: `Menu.setApplicationMenu(null)`, `configureSession`, `installPermissions`, `installDownloads`, `openMainWindow`.
-5. `openMainWindow` reads `window-state.json`, creates the `BrowserWindow` with `show: false`, calls `attachTabs`, and loads `dist/renderer/index.html`.
+5. `openMainWindow` reads `window-state.json`, creates the `BrowserWindow` with `show: false`, calls `attachTabs`, calls `installCapture`, and loads `dist/renderer/index.html`.
 6. `attachTabs` creates one `WebContentsView` per saved URL and loads it.
 7. The strip script calls `stripReady` after its first `getTabs` (success or failure). The main process then `layout()`s and `show()`s. A 5 second timer shows the window if that IPC never arrives.
 
@@ -203,7 +207,7 @@ Do not set `ELECTRON_OZONE_PLATFORM_HINT=x11` or pass `--ozone-platform=x11`.
 
 ### Permissions
 
-`decidePermission` returns true only for `"media"` (microphone and camera). `notifications`, `display-capture`, `geolocation`, `clipboard-read`, and any other string return false. Both `setPermissionCheckHandler` and `setPermissionRequestHandler` call it. There is no permission window.
+`decidePermission` returns true only for `"media"` (microphone and camera). `notifications`, `display-capture`, `geolocation`, `clipboard-read`, and any other string return false. Both `setPermissionCheckHandler` and `setPermissionRequestHandler` call it. There is no permission window. Region capture does not grant the page `display-capture`. The main process calls the Screenshot and GlobalShortcuts portals itself.
 
 `<input type="file">` is not intercepted. Chromium shows the system file dialog.
 
@@ -215,7 +219,7 @@ Do not set `ELECTRON_OZONE_PLATFORM_HINT=x11` or pass `--ozone-platform=x11`.
 
 `npm run dist` builds, runs `copy-notices.mjs`, then `electron-builder --linux rpm --x64`. The rpm filename follows `package.json` version (`grokdesktop-0.1.0.x86_64.rpm` at version 0.1.0). electron-builder's packager needs `libcrypt.so.1` (`libxcrypt-compat` on Fedora) and `rpm-build`. There is no publish config (`linux.publish` is null) and no CI workflow.
 
-`files` packs `dist/**/*` except source maps, plus `build/icon.png`, `package.json`, and `LICENSE`. `extraResources` packs `build/third-party` and `LICENSE`.
+`files` packs `dist/**/*` except source maps, plus `build/icon.png`, `package.json`, `LICENSE`, and the production `dbus-next` tree. The custom `files` list replaces electron-builder's default, so `node_modules` is not packed unless named there. `extraResources` packs `build/third-party` and `LICENSE`.
 
 `shellAssetPath(__dirname, "icon.png")`, with `__dirname` of `dist/window/open.js`, resolves to `dist/build/icon.png`. The builder `files` entry places `build/icon.png` at the app root, which is the path `linux.icon` uses for the desktop entry. Those two locations differ.
 
@@ -229,8 +233,8 @@ There is no HTTP API. The title-bar page talks to the main process through these
 
 | Channel | Direction | Payload | Effect |
 |---------|-----------|---------|--------|
-| `tabs-get` | renderer `invoke` → `ipcMain.handle` | none | Returns `{ tabs, activeIndex }`. |
-| `tabs-updated` | main `send` → `ipcRenderer.on` | `TabStripState` | Re-renders the strip. Sent on open, close, switch, and when a grok.com navigation changes a tab URL. |
+| `tabs-get` | renderer `invoke` → `ipcMain.handle` | none | Returns `{ tabs, titles, activeIndex }`. |
+| `tabs-updated` | main `send` → `ipcRenderer.on` | `TabStripState` | Re-renders the strip. Sent on open, close, switch, when a grok.com navigation changes a tab URL, and when a page title changes. A title-only update does not rewrite `window-state.json`. |
 | `tabs-open` | renderer `send` | none | Opens `https://grok.com` and activates it. |
 | `tabs-close` | renderer `send` | integer index | Closes that tab. Non-integers are ignored. |
 | `tabs-switch` | renderer `send` | integer index | Activates that tab. |
@@ -245,13 +249,13 @@ There is no HTTP API. The title-bar page talks to the main process through these
 | Model | Key fields |
 |-------|-----------|
 | `TabState` | `tabs: readonly string[]`, `activeIndex: number`. `createTabState()` is one `HOME_URL` at index 0. |
-| `TabStripState` | `tabs: string[]`, `activeIndex: number`. The IPC payload. A shallow copy of the URL list. |
+| `TabStripState` | `tabs: string[]`, `titles: string[]`, `activeIndex: number`. The IPC payload. Shallow copies. `titles` are not saved. `tabTitle` in `tabs/title.ts` turns a document title into `titles[i]`. |
 | `PersistedWindow` | `bounds: WindowBounds \| null`, `tabs: string[]`, `activeIndex: number`. |
 | `WindowBounds` | `x`, `y`, `width`, `height`. All finite. Width and height at least 200. |
 | `LinkDecision` | `"stay"` \| `"external"` \| `"new-tab"` \| `"child-window"`. |
 | `LinkKind` | `"main-frame"` \| `"redirect"` \| `"window-open"`. |
 | `Shortcut` | `"open-tab"` \| `"close-tab"`. |
-| `TabHost` | `{ layout, saveNow }` returned by `attachTabs`. `open.ts` calls `layout` just before the first show. |
+| `TabHost` | `{ layout, saveNow, pasteClipboard }` returned by `attachTabs`. `open.ts` calls `layout` just before the first show. `pasteClipboard` restores, shows, and focuses the window, focuses the active view, and calls `webContents.paste()`. |
 | `LinkHost` | `{ openTab, parent, session }` passed into `attachLinkHandlers`. |
 
 `window-state.json`:
@@ -283,7 +287,9 @@ The shell window is a real frame (`frame: true`) with `titleBarStyle: "hidden"` 
 
 Each tab is a `WebContentsView` (Electron 45), child of `win.contentView`, with the persistent session and `CHROME_USER_AGENT`. The shell does not inject CSS or JavaScript into grok.com and does not read the page DOM. Tab labels are the URL hostname plus pathname (`/` omitted), or `"Grok"` when the URL cannot be parsed.
 
-Shortcuts are `before-input-event` on the shell `webContents` and on every tab view. They run only while that webContents is receiving input. Ctrl+T opens a tab. Ctrl+W closes the active tab. The mapping requires `keyDown`, Control, and no Alt, Meta, or Shift. The key is lowercased. A matched shortcut calls `preventDefault`.
+Shortcuts are `before-input-event` on the shell `webContents` and on every tab view. They run only while that webContents is receiving input. Ctrl+T opens a tab. Ctrl+W closes the active tab. Ctrl+Left and Ctrl+Right activate the previous and next tab. `switchTab` ignores an out-of-range index, so the ends stop. The mapping requires `keyDown`, Control, and no Alt, Meta, or Shift. The key is lowercased, so the arrows match `arrowleft` and `arrowright`. A matched shortcut calls `preventDefault`. Ctrl+Alt+S is not in that mapping.
+
+Ctrl+Alt+S is the GlobalShortcuts portal binding `capture-region`, suggested as `<Control><Alt>s`. The description GNOME shows is `Capture a region and paste it into GrokDesktop`. Before any other portal call, the main process registers the app id `grokdesktop` on `org.freedesktop.host.portal.Registry` so it matches `grokdesktop.desktop`. The session is created when the window opens and dropped when the window closes. A press calls Screenshot with `interactive: true`, `modal: false`, and an empty `parent_window`. Electron 45 has no `clipboard.writeImage`. A finished PNG is checked with `nativeImage.createFromBuffer`, then written with `clipboard.write` and a `ClipboardItem` of type `image/png`. `pasteClipboard` then raises the window and pastes into the active tab. The shell does not press Enter and does not inject into grok.com. Cancelling the region tool leaves the window and the clipboard alone. A second press while a region tool is open is ignored.
 
 Tab model behavior the host relies on:
 
@@ -364,7 +370,7 @@ The renderer is one static page. No React, no bundler, no CSS framework.
 
 ### Page
 
-`index.html` loads `tab-strip.css` and `tab-strip.js` as same-origin relative URLs. `tab-strip.ts` declares `grokdesktop` as a global `TabBridge`. It builds tab DOM with `createElement` and `replaceChildren` on each state. Buttons are `type="button"`. The close control sets `aria-label` to `Close {label}`. The new-tab button's label is `New tab`.
+`index.html` loads `tab-strip.css` and `tab-strip.js` as same-origin relative URLs. `tab-strip.ts` declares `grokdesktop` as a global `TabBridge`. It builds tab DOM with `createElement` and `replaceChildren` on each state. The visible label is `titles[i]` when that string is non-empty, otherwise the hostname and path. The button tooltip stays the full URL. Buttons are `type="button"`. The close control sets `aria-label` to `Close {label}`. The new-tab button's label is `New tab`.
 
 ### Layout
 
@@ -424,7 +430,7 @@ Colors are CSS variables on `:root` (`--strip` `#181818`, `--editor` `#1f1f1f`, 
 - **Method naming:** `describe` is the concern (`"link classifier"`, `"tab model"`). `it` is a behavior sentence (`"closes the active tab and selects the neighbor"`).
 - **Mocking:** no mock library. Pure functions take their inputs directly. `downloadFilePath` takes an `exists` callback. `applyWayland` takes an `appendSwitch` callback. `persist-file.test.ts` uses `fs.mkdtempSync` under `os.tmpdir()`. `preload.test.ts` reads `src/renderer/preload.ts` as text.
 - **Assertions:** `expect(...).toBe`, `toEqual`, `toContain`, `not.toContain`.
-- **Latest run:** 11 files, 45 tests, passing (`vitest run` on 2026-11-06).
+- **Latest run:** 12 files, 60 tests, passing (`vitest run` on 2026-11-06).
 
 `npm run build` (`tsc -p tsconfig.json && tsc -p tsconfig.renderer.json && node scripts/copy-static.mjs`) completes and writes `dist/main.js`, `dist/renderer/preload.js`, `dist/renderer/tab-strip.js`, `dist/renderer/index.html`, and `dist/renderer/tab-strip.css`.
 

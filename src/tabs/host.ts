@@ -7,20 +7,25 @@ import type { PersistedWindow } from "../persist/state";
 import { secureWebPreferences } from "../session/preferences";
 import { CHROME_USER_AGENT } from "../session/user-agent";
 import { closeTab, openTab, setTabUrl, switchTab, type TabState } from "./model";
+import { tabTitle } from "./title";
 import { TAB_STRIP_HEIGHT } from "../window/constants";
 import { shortcutFor } from "../window/shortcuts";
 
 export type TabHost = {
   layout: () => void;
   saveNow: () => void;
+  pasteClipboard: () => void;
 };
 
 export function attachTabs(win: BrowserWindow, ses: Session, saved: PersistedWindow): TabHost {
   let state: TabState = { tabs: [...saved.tabs], activeIndex: saved.activeIndex };
   const views: WebContentsView[] = [];
+  const titles: string[] = state.tabs.map(() => "");
+  const rawTitles: string[] = state.tabs.map(() => "");
 
   const payload = (): TabStripState => ({
     tabs: [...state.tabs],
+    titles: [...titles],
     activeIndex: state.activeIndex,
   });
 
@@ -33,10 +38,13 @@ export function attachTabs(win: BrowserWindow, ses: Session, saved: PersistedWin
     });
   };
 
+  const sendTabs = (): void => {
+    if (win.webContents.isDestroyed()) return;
+    win.webContents.send(IpcChannel.tabsUpdated, payload());
+  };
+
   const publish = (): void => {
-    if (!win.webContents.isDestroyed()) {
-      win.webContents.send(IpcChannel.tabsUpdated, payload());
-    }
+    sendTabs();
     saveNow();
   };
 
@@ -57,6 +65,8 @@ export function attachTabs(win: BrowserWindow, ses: Session, saved: PersistedWin
     if (!shortcut) return;
     event.preventDefault();
     if (shortcut === "open-tab") open();
+    else if (shortcut === "previous-tab") activate(state.activeIndex - 1);
+    else if (shortcut === "next-tab") activate(state.activeIndex + 1);
     else close(state.activeIndex);
   };
 
@@ -66,9 +76,17 @@ export function attachTabs(win: BrowserWindow, ses: Session, saved: PersistedWin
     const url = view.webContents.getURL();
     if (!isGrokUrl(url)) return;
     const next = setTabUrl(state, index, url);
-    if (next === state) return;
-    state = next;
-    publish();
+    const urlChanged = next !== state;
+    if (urlChanged) state = next;
+    const current = view.webContents.getTitle();
+    const titleChanged = current !== rawTitles[index];
+    if (titleChanged) {
+      rawTitles[index] = current;
+      titles[index] = tabTitle(current);
+    }
+    if (!urlChanged && !titleChanged) return;
+    if (urlChanged) publish();
+    else sendTabs();
   };
 
   const linkHost = {
@@ -90,11 +108,22 @@ export function attachTabs(win: BrowserWindow, ses: Session, saved: PersistedWin
     view.webContents.on("before-input-event", onShortcut);
     view.webContents.on("did-navigate", () => track(view));
     view.webContents.on("did-navigate-in-page", () => track(view));
+    view.webContents.on("page-title-updated", (_event, title: string) => {
+      const index = views.indexOf(view);
+      if (index < 0 || view.webContents.isDestroyed()) return;
+      if (!isGrokUrl(view.webContents.getURL())) return;
+      if (rawTitles[index] === title && titles[index] === tabTitle(title)) return;
+      rawTitles[index] = title;
+      titles[index] = tabTitle(title);
+      sendTabs();
+    });
     return view;
   };
 
   const open = (url?: string): void => {
     state = openTab(state, url);
+    titles.push("");
+    rawTitles.push("");
     const view = createPageView();
     views.push(view);
     void view.webContents.loadURL(state.tabs[state.activeIndex]);
@@ -106,6 +135,8 @@ export function attachTabs(win: BrowserWindow, ses: Session, saved: PersistedWin
     const next = closeTab(state, index);
     if (next === state) return;
     const [view] = views.splice(index, 1);
+    titles.splice(index, 1);
+    rawTitles.splice(index, 1);
     if (view) {
       win.contentView.removeChildView(view);
       if (!view.webContents.isDestroyed()) view.webContents.close();
@@ -160,5 +191,16 @@ export function attachTabs(win: BrowserWindow, ses: Session, saved: PersistedWin
     ipcMain.removeAllListeners(IpcChannel.switchTab);
   });
 
-  return { layout, saveNow };
+  const pasteClipboard = (): void => {
+    if (win.isDestroyed()) return;
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
+    const view = views[state.activeIndex];
+    if (!view || view.webContents.isDestroyed()) return;
+    view.webContents.focus();
+    view.webContents.paste();
+  };
+
+  return { layout, saveNow, pasteClipboard };
 }

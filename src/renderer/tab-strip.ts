@@ -1,5 +1,6 @@
 type TabStripState = {
   tabs: string[];
+  titles: string[];
   activeIndex: number;
 };
 
@@ -14,7 +15,8 @@ type TabBridge = {
 
 declare const grokdesktop: TabBridge;
 
-function labelFor(url: string): string {
+function labelFor(url: string, title: string | undefined): string {
+  if (title) return title;
   try {
     const parsed = new URL(url);
     const path = parsed.pathname === "/" ? "" : parsed.pathname;
@@ -29,18 +31,19 @@ function render(state: TabStripState): void {
   if (!root) return;
   root.replaceChildren();
   state.tabs.forEach((url, index) => {
+    const label = labelFor(url, state.titles[index]);
     const tab = document.createElement("div");
     tab.className = index === state.activeIndex ? "tab active" : "tab";
     const select = document.createElement("button");
     select.type = "button";
     select.className = "select";
-    select.textContent = labelFor(url);
+    select.textContent = label;
     select.title = url;
     select.addEventListener("click", () => grokdesktop.switchTab(index));
     const close = document.createElement("button");
     close.type = "button";
     close.className = "close";
-    close.setAttribute("aria-label", `Close ${labelFor(url)}`);
+    close.setAttribute("aria-label", `Close ${label}`);
     close.textContent = "×";
     close.addEventListener("click", () => grokdesktop.closeTab(index));
     tab.append(select, close);

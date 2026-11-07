@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, type Session } from "electron";
 import { IpcChannel } from "../ipc";
 import { readWindowState } from "../persist/file";
 import { secureWebPreferences } from "../session/preferences";
+import { installCapture } from "../capture/portal";
 import { attachTabs } from "../tabs/host";
 import { shellAssetPath } from "./assets";
 import { DEFAULT_HEIGHT, DEFAULT_WIDTH, TITLE_BAR_OVERLAY } from "./constants";
@@ -40,6 +41,7 @@ export function openMainWindow(ses: Session): BrowserWindow {
   win.setTitle("GrokDesktop");
 
   const tabs = attachTabs(win, ses, saved);
+  const releaseCapture = installCapture(tabs);
   const show = (): void => {
     ipcMain.removeListener(IpcChannel.stripReady, show);
     if (win.isDestroyed() || win.isVisible()) return;
@@ -55,6 +57,7 @@ export function openMainWindow(ses: Session): BrowserWindow {
   win.on("closed", () => {
     clearTimeout(showTimer);
     ipcMain.removeListener(IpcChannel.stripReady, show);
+    releaseCapture();
     if (mainWindow === win) mainWindow = null;
   });
   return win;
