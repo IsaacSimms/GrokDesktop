@@ -4,6 +4,7 @@ import { readWindowState } from "../persist/file";
 import { secureWebPreferences } from "../session/preferences";
 import { installCapture } from "../capture/portal";
 import { attachTabs } from "../tabs/host";
+import { attachContextMenu } from "./attach-context-menu";
 import { shellAssetPath } from "./assets";
 import { DEFAULT_HEIGHT, DEFAULT_WIDTH, TITLE_BAR_OVERLAY } from "./constants";
 
@@ -35,6 +36,7 @@ export function openMainWindow(ses: Session): BrowserWindow {
   });
   mainWindow = win;
   win.setMenuBarVisibility(false);
+  attachContextMenu(win.webContents);
   win.on("page-title-updated", (event) => {
     event.preventDefault();
   });

@@ -2,6 +2,7 @@ import { shell, type BrowserWindow, type Session, type WebContents } from "elect
 import { classifyLink, isPopupWindowOpen, openableExternalUrl } from "./classify";
 import { secureWebPreferences } from "../session/preferences";
 import { CHROME_USER_AGENT } from "../session/user-agent";
+import { attachContextMenu } from "../window/attach-context-menu";
 
 export type LinkHost = {
   openTab: (url: string) => void;
@@ -69,5 +70,6 @@ export function attachLinkHandlers(
     child.setMenuBarVisibility(false);
     child.webContents.setUserAgent(CHROME_USER_AGENT);
     attachLinkHandlers(child.webContents, host, "popup");
+    attachContextMenu(child.webContents, { openTab: (url) => host.openTab(url) });
   });
 }

@@ -9,6 +9,7 @@ import { CHROME_USER_AGENT } from "../session/user-agent";
 import { closeTab, openTab, setTabUrl, switchTab, type TabState } from "./model";
 import { tabTitle } from "./title";
 import { TAB_STRIP_HEIGHT } from "../window/constants";
+import { attachContextMenu } from "../window/attach-context-menu";
 import { shortcutFor } from "../window/shortcuts";
 
 export type TabHost = {
@@ -105,6 +106,7 @@ export function attachTabs(win: BrowserWindow, ses: Session, saved: PersistedWin
     view.webContents.setUserAgent(CHROME_USER_AGENT);
     win.contentView.addChildView(view);
     attachLinkHandlers(view.webContents, linkHost, "tab");
+    attachContextMenu(view.webContents, { openTab: (url) => open(url) });
     view.webContents.on("before-input-event", onShortcut);
     view.webContents.on("did-navigate", () => track(view));
     view.webContents.on("did-navigate-in-page", () => track(view));

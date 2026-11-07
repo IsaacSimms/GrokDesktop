@@ -191,7 +191,7 @@ The preload path is passed only for the shell window. Tab views and child window
 
 The shell page CSP in `index.html` is `default-src 'none'; style-src 'self'; script-src 'self'`.
 
-The shell `webContents` cancels `will-navigate` unless the URL starts with `file:`, so the title-bar page cannot be navigated away. `page-title-updated` is cancelled and the window title stays `GrokDesktop`. The application menu is removed and the menu bar is hidden.
+The shell `webContents` cancels `will-navigate` unless the URL starts with `file:`, so the title-bar page cannot be navigated away. `page-title-updated` is cancelled and the window title stays `GrokDesktop`. The application menu is removed and the menu bar is hidden. Electron draws no default right-click menu, so `attachContextMenu` listens for `context-menu` on the shell page, each tab view, and each popup. The menu calls `cut`, `copy`, `paste`, and the other edit commands on that same `webContents`. Menu roles are not used, because a role would target the focused shell page instead of the tab view under the pointer.
 
 ### Wayland
 
