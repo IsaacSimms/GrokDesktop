@@ -92,7 +92,7 @@ The entry (`package.json` `"main": "dist/main.js"`) calls `app.setName("GrokDesk
 
 ### `src/permissions/` — prompt policy
 
-- `decide.ts` — `media` is allowed. Every other permission string is denied.
+- `decide.ts` — `media` and `clipboard-sanitized-write` are allowed. Every other permission string is denied. The clipboard grant is what makes grok.com's code-block Copy button able to call `navigator.clipboard.writeText`. `clipboard-read` stays denied.
 - `install.ts` — wires that function to both the permission-check handler and the permission-request handler.
 
 ### `src/persist/` — restore
@@ -207,7 +207,7 @@ Do not set `ELECTRON_OZONE_PLATFORM_HINT=x11` or pass `--ozone-platform=x11`.
 
 ### Permissions
 
-`decidePermission` returns true only for `"media"` (microphone and camera). `notifications`, `display-capture`, `geolocation`, `clipboard-read`, and any other string return false. Both `setPermissionCheckHandler` and `setPermissionRequestHandler` call it. There is no permission window. Region capture does not grant the page `display-capture`. The main process calls the Screenshot and GlobalShortcuts portals itself.
+`decidePermission` returns true for `"media"` (microphone and camera) and `"clipboard-sanitized-write"` (a user-gesture `navigator.clipboard.writeText` or text `clipboard.write`, which grok.com's code-block Copy button uses). `notifications`, `display-capture`, `geolocation`, `clipboard-read`, and any other string return false. Both `setPermissionCheckHandler` and `setPermissionRequestHandler` call it. There is no permission window. Region capture does not grant the page `display-capture`. The main process calls the Screenshot and GlobalShortcuts portals itself.
 
 `<input type="file">` is not intercepted. Chromium shows the system file dialog.
 
